@@ -34,15 +34,15 @@ function initTool() {
     `;
 
     const formTemplate = (formId, value, shortcutKey) => `
-        <form id="${formId}" class="form-item">
-            <div class="form-content">
-                <input type="text" placeholder="请输入内容" value="${value || ''}" />
-                <button type="button" class="submit-btn">填充</button>
-                <button type="button" class="delete-btn">删除</button>
-                <span class="shortcut-label">Alt + ${shortcutKey}</span>
-            </div>
-        </form>
-    `;
+    <form id="${formId}" class="form-item">
+        <div class="form-content">
+            <input type="text" placeholder="请输入内容" value="${value || ''}" />
+            <button type="button" class="submit-btn" title="快捷键：Alt + ${shortcutKey}">填充</button>
+            <button type="button" class="copy-btn" title="快捷键：Alt + Shift + ${shortcutKey}">复制</button>
+            <button type="button" class="delete-btn">删除</button>
+        </div>
+    </form>
+`;
 
     // 样式定义
     const styles = `
@@ -133,6 +133,27 @@ function initTool() {
             background: #1976D2;
         }
 
+        .copy-btn {
+            padding: 4px 8px;
+            background: #FFC107;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background-color 0.2s;
+        }
+
+        .copy-btn:hover {
+            background: #e0a800;
+        }
+
+        .active-shortcut {
+            box-shadow: 0 0 0 2px #2196F3;
+            background: #1976D2 !important;
+        }
+        }
+
         .delete-btn {
             padding: 4px 8px;
             background: #f44336;
@@ -192,6 +213,7 @@ function initTool() {
         const formElement = document.createElement('div');
         formElement.innerHTML = formTemplate(formId, savedValue, shortcutKey);
         const form = formElement.firstElementChild;
+        form.id = formId; // 修正：确保 id 被设置
 
         setupFormEvents(form, formId);
         formContainer.appendChild(form);
@@ -200,18 +222,79 @@ function initTool() {
     function setupFormEvents(form, formId) {
         const input = form.querySelector('input');
         const submitBtn = form.querySelector('.submit-btn');
+        const copyBtn = form.querySelector('.copy-btn');
         const deleteBtn = form.querySelector('.delete-btn');
 
         submitBtn.addEventListener('click', () => fillFormContent(input.value));
         deleteBtn.addEventListener('click', () => deleteForm(form, formId));
         input.addEventListener('input', () => updateFormData(formId, input.value));
 
-        // 添加快捷键
-        const shortcutKey = getShortcutKey(parseInt(formId.split('_')[1]));
+        // 复制事件
+        copyBtn.addEventListener('click', () => {
+            copyInputValue(input, copyBtn);
+        });
+    }
+
+    // 新增复制逻辑
+    function copyInputValue(input, copyBtn) {
+        navigator.clipboard.writeText(input.value).then(() => {
+            copyBtn.textContent = '已复制';
+            setTimeout(() => { copyBtn.textContent = '复制'; }, 1000);
+        });
+    }
+
+    // 优化快捷键监听
+    function setupGlobalShortcuts() {
         document.addEventListener('keydown', (e) => {
-            if (e.altKey && e.key.toLowerCase() === shortcutKey) {
+            // Alt+T 显示/隐藏工具，无论当前是否显示
+            if (e.altKey && e.key.toLowerCase() === 't') {
                 e.preventDefault();
-                fillFormContent(input.value);
+                toolState.isToolVisible = !toolState.isToolVisible;
+                dragBox.style.display = toolState.isToolVisible ? 'block' : 'none';
+                return;
+            }
+            // 其它快捷键仅在工具显示时生效
+            if (!toolState.isToolVisible) return;
+            // 填充快捷键 Alt + [key]
+            if (e.altKey && !e.shiftKey) {
+                Object.entries(toolState.formData).forEach(([formId, value]) => {
+                    const formNumber = parseInt(formId.split('_')[1]);
+                    const shortcutKey = getShortcutKey(formNumber);
+                    if (e.key.toLowerCase() === shortcutKey) {
+                        e.preventDefault();
+                        fillFormContent(value);
+                        // 显示填充按钮的高亮反馈
+                        const form = document.getElementById(formId);
+                        if (form) {
+                            const btn = form.querySelector('.submit-btn');
+                            btn.classList.add('active-shortcut');
+                            setTimeout(() => btn.classList.remove('active-shortcut'), 300);
+                        }
+                    }
+                });
+            }
+            // 复制快捷键 Alt + Shift + [key]
+            if (e.altKey && e.shiftKey) {
+                Object.entries(toolState.formData).forEach(([formId, value]) => {
+                    const formNumber = parseInt(formId.split('_')[1]);
+                    const shortcutKey = getShortcutKey(formNumber);
+                    if (e.key.toLowerCase() === shortcutKey) {
+                        e.preventDefault();
+                        chrome.runtime.sendMessage({action: 'copyToClipboard', text: value + ''}, (response) => {
+                            // 显示复制按钮高亮反馈
+                            const form = document.getElementById(formId);
+                            if (form) {
+                                const btn = form.querySelector('.copy-btn');
+                                btn.classList.add('active-shortcut');
+                                btn.textContent = '已复制';
+                                setTimeout(() => {
+                                    btn.classList.remove('active-shortcut');
+                                    btn.textContent = '复制';
+                                }, 700);
+                            }
+                        });
+                    }
+                });
             }
         });
     }
@@ -302,18 +385,8 @@ function initTool() {
             }
         }, true);
 
-        document.addEventListener('keydown', (e) => {
-            if (e.altKey && e.key.toLowerCase() === 't') {
-                e.preventDefault();
-                toolState.isToolVisible = !toolState.isToolVisible;
-                dragBox.style.display = toolState.isToolVisible ? 'block' : 'none';
-                chrome.storage.local.set({ toolVisible: toolState.isToolVisible });
-            }
-        });
-
         setupDragEvents();
-
-        // 加载保存的数据
+        setupGlobalShortcuts();
         loadSavedData();
     }
 

@@ -7,7 +7,8 @@
     "permissions": [
         "storage",
         "activeTab",
-        "management"
+        "management",
+        "scripting"
     ],
     "host_permissions": [
         "*://*/*"
@@ -30,6 +31,9 @@
             ]
         }
     ],
+    "background": {
+        "service_worker": "background.js"
+    },
     "icons": {
         "16": "icons/icon16.png",
         "48": "icons/icon48.png",
