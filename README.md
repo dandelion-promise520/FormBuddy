@@ -3,4 +3,7 @@
 ### 使用方法说明:
 
 先在github中下载压缩包或者使用git clone拉项目
-<img width="1920" height="953" alt="image" src="https://github.com/user-attachments/assets/4fb38f6f-2c68-4d8b-995a-241878b3a602" />
+<img alt="image" src="https://github.com/user-attachments/assets/4fb38f6f-2c68-4d8b-995a-241878b3a602" />
+
+将浏览器中的开发者模式打开,点击加载未打包的拓展程序
+<img alt="image" src="https://github.com/user-attachments/assets/39d981c8-fc1c-4ca2-b413-0be0c0536c42" />
