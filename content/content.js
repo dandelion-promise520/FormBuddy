@@ -251,6 +251,7 @@ function initTool() {
                 e.preventDefault();
                 toolState.isToolVisible = !toolState.isToolVisible;
                 dragBox.style.display = toolState.isToolVisible ? 'block' : 'none';
+                chrome.storage.local.set({ toolVisible: toolState.isToolVisible });
                 return;
             }
             // 填充快捷键 Alt + [key]
