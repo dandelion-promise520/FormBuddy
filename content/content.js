@@ -253,8 +253,6 @@ function initTool() {
                 dragBox.style.display = toolState.isToolVisible ? 'block' : 'none';
                 return;
             }
-            // 其它快捷键仅在工具显示时生效
-            if (!toolState.isToolVisible) return;
             // 填充快捷键 Alt + [key]
             if (e.altKey && !e.shiftKey) {
                 Object.entries(toolState.formData).forEach(([formId, value]) => {
